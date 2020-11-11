@@ -1,0 +1,14 @@
+{
+  "name": "cc-node",
+  "version": "1.0.0",
+  "description": "First project on express",
+  "main": "server.js",
+  "repository": "https://github.com/michelebruno/cc-node",
+  "author": "michelebruno <bm.michelebruno@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^3.0.1"
+  }
+}
