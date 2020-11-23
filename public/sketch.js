@@ -14,7 +14,6 @@ const canvasWidth = 8000;
 const canvasHeight = 7000;
 
 let nose;
-const nosePos = {detected: false};
 let faceapi;
 let video;
 let videoCanva;
@@ -23,16 +22,9 @@ let noseIcon;
 let me;
 
 /**
- * Creates a new brush.
- */
-socket.on('brush', (id, x, y, color) => {
-  brushes.set(id, new Brush({x, y, color}));
-});
-
-/**
  * Changes the direction of the brush and creates one if it's not there.
  */
-socket.on('brush.direction', (id, x, y, posX, posY, col) => {
+socket.on('brush', (id, x, y, posX, posY, col) => {
   if (!brushes.has(id)) {
     brushes.set(id, new Brush({x: posX, y: posY, col}));
   }
@@ -122,11 +114,6 @@ function setup() {
 
   me = new Brush({x: random(canvasWidth), y: random(canvasHeight), remote: 0});
 
-  /**
-   * Tells the server there is a new brush in town.
-   */
-  socket.emit('socket.join', me.pos.x, me.pos.y);
-
   video = createCapture(VIDEO); // load up your video
   video.hide(); // Hide the video element, and just show the canvas
 
@@ -184,8 +171,7 @@ class Brush {
     this.pos = createVector(x, y);
     this.direction = createVector(0, 0);
 
-    this.vel = createVector(0, 0);
-    this.history = [this.pos];
+    this.history = [];
     this.remote = remote;
 
     this.col = col ? color(col) : color(random(255), random(255), random(255));
@@ -201,19 +187,19 @@ class Brush {
     const dY = map(_y, 0, video.height, -height / 2, height / 2);
     nose = found;
     this.setDirection(dX, dY);
-  }
-
-  setDirection(x, y) {
-    this.direction = createVector(x, y);
-    this.direction.limit(15);
 
     /**
      * We notice the server and other players about the direction change.
      *
      * We also pass our position and color for those who see us for the first time.
      */
-    socket.emit('socket.direction', x, y, this.pos.x, this.pos.y,
+    socket.emit('brush', dX, dY, this.pos.x, this.pos.y,
         this.col.toString());
+  }
+
+  setDirection(x, y) {
+    this.direction = createVector(x, y);
+    this.direction.limit(15);
   }
 
   /**
@@ -298,3 +284,6 @@ function toggleCamera() {
   videoCanva?.toggleClass('hide');
 }
 
+function doubleClicked() {
+  toggleCamera();
+}
