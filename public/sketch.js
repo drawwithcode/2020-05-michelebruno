@@ -4,7 +4,7 @@
  * A map is an array with custom keys and other nice methods.
  *
  * @see https://developer.mozilla.org/it/docs/Web/JavaScript/Reference/Global_Objects/Map
- * @type {Map<string, Brush>}
+ * @type {Map<string, StarShip>}
  */
 const brushes = new Map();
 const socket = io();
@@ -24,14 +24,14 @@ let me;
 let timeout;
 /** @type {p5.Element} */
 let modeButton;
-let useFace = true;
+let useFace = false;
 
 /**
  * Changes the direction of the brush and creates one if it's not there.
  */
 socket.on('brush', (id, x, y, dX, dY, col) => {
   if (!brushes.has(id)) {
-    brushes.set(id, new Brush({x, y, col}));
+    brushes.set(id, new StarShip({x, y, col}));
   }
 
   const brush = brushes.get(id);
@@ -45,7 +45,7 @@ socket.on('brush', (id, x, y, dX, dY, col) => {
  * When a player leaves, let's set direction to 0 so it stops.
  */
 socket.on('brush.leave', (id) => {
-  brushes.get(id)?.setDirection(0, 0);
+  brushes.get(id)?.die();
 });
 
 function preload() {
@@ -122,26 +122,30 @@ new p5((sketch) => {
   };
 });
 
+function initVideo() {
+  if (video) return;
+
+  video = createCapture(VIDEO, () => {
+    faceapi = ml5.faceApi(video, {
+      withLandmarks: true,
+      withDescriptors: false,
+    }, () => faceapi.detect(gotResults));
+  });
+  video.hide(); // Hide the video element, and just show the canvas
+}
+
 // eslint-disable-next-line no-unused-vars
 function setup() {
   createCanvas(windowWidth, windowHeight);
 
-  modeButton =createButton('Drive with your face')
-      .position(20, 20)
-      .mouseClicked(toggleMode);
+  modeButton = createButton('Drive with your face').
+      position(20, 20).
+      mouseClicked(toggleMode);
   /**
    * Creates a brush with a random position.
-   * @type {Brush}
+   * @type {StarShip}
    */
-  me = new Brush({x: random(canvasWidth), y: random(canvasHeight), remote: 0});
-
-  video = createCapture(VIDEO); // load up your video
-  video.hide(); // Hide the video element, and just show the canvas
-
-  faceapi = ml5.faceApi(video, {
-    withLandmarks: true,
-    withDescriptors: false,
-  }, () => faceapi.detect(gotResults));
+  me = new StarShip({x: random(canvasWidth), y: random(canvasHeight), remote: 0});
 
   textAlign(RIGHT);
 }
@@ -152,6 +156,11 @@ function draw() {
 
   translate(width / 2, height / 2);
 
+  if (!useFace) {
+    const dX = map(mouseX, 0, width, -width, width) / 15;
+    const dY = map(mouseY, 0, height, -height, height) / 15;
+    me.setDirection(dX, dY);
+  }
   /**
    * In order to have better speed control.
    */
@@ -184,10 +193,12 @@ function gotResults(err, result) {
     } else nose = false;
   } else nose = false;
 
+  if (!useFace) return;
+
   faceapi.detect(gotResults);
 }
 
-class Brush {
+class StarShip {
   constructor({x = 0, y = 0, remote = true, col} = {}) {
     this.pos = createVector(x, y);
     this.direction = createVector(0, 0);
@@ -212,7 +223,7 @@ class Brush {
 
   setDirection(x, y) {
     this.direction = createVector(x, y);
-    this.direction.limit(15);
+    this.direction.limit(10);
   }
 
   setPosition(pos, add) {
@@ -244,7 +255,6 @@ class Brush {
 
     this.setPosition(this.pos, this.direction);
 
-
     /**
      * We notice the server and other players about the position change.
      */
@@ -262,10 +272,14 @@ class Brush {
    * Trims the history if it's too long.
    */
   checkHistoryLenght() {
-    const maxLength = 800;
+    const maxLength = 200;
     if (this.history.length > maxLength) {
       this.history.shift();
     }
+  }
+
+  die() {
+    this.setDirection(0, 0);
   }
 
   display() {
@@ -284,10 +298,13 @@ class Brush {
     }
 
     push();
-    stroke(this.col);
     strokeWeight(40);
 
     for (let i = 1; i < this.history.length; i++) {
+      const opacity = i/this.history.length * 255;
+      const col = this.col;
+      col.setAlpha(opacity);
+      stroke(col);
       const current = this.history[i];
       const to = this.history[i + 1];
       to && line(to.x, to.y, current.x, current.y);
@@ -322,9 +339,11 @@ function toggleMode() {
   useFace = !useFace;
 
   if (useFace) {
-    modeButton.html('Use your face');
+    video ? faceapi.detect(gotResults): initVideo();
+    modeButton.html('Use mouse to navigate');
   } else {
-    modeButton.html( 'Use mouse to navigate' );
+    modeButton.html('Use your face');
+    videoCanva.addClass('hide');
   }
 }
 
