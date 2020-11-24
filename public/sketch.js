@@ -83,17 +83,16 @@ function setup() {
 }
 
 function textInPos(t, pos) {
+  textSize(25);
   text(t, width * pos[0], height * pos[1]);
 }
 
 // eslint-disable-next-line no-unused-vars
 function draw() {
-  textSize(20);
   push();
   background(3);
 
   translate(width / 2, height / 2);
-
 
   const dX = map(mouseX, 0, width, -30, 30);
   const dY = map(mouseY, 0, height, -30 * height/width, 30*height/width);
