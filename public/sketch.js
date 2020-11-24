@@ -24,12 +24,16 @@ let me;
 /**
  * Changes the direction of the brush and creates one if it's not there.
  */
-socket.on('brush', (id, x, y, posX, posY, col) => {
+socket.on('brush', (id, x, y, dX, dY, col) => {
   if (!brushes.has(id)) {
-    brushes.set(id, new Brush({x: posX, y: posY, col}));
+    brushes.set(id, new Brush({x, y, col}));
   }
 
-  brushes.get(id)?.setDirection(x, y);
+  const brush = brushes.get(id);
+
+  brush.setDirection(dX, dY);
+
+  brush.setPosition(createVector(x, y), undefined, true);
 });
 
 /**
@@ -80,6 +84,10 @@ new p5((sketch) => {
     }
 
     sketch.pop();
+  };
+
+  sketch.windowResized = function() {
+    sketch.resizeCanvas(sketch.windowWidth, sketch.windowHeight);
   };
 
   sketch.draw = () => {
@@ -187,14 +195,6 @@ class Brush {
     const dY = map(_y, 0, video.height, -height / 2, height / 2);
     nose = found;
     this.setDirection(dX, dY);
-
-    /**
-     * We notice the server and other players about the direction change.
-     *
-     * We also pass our position and color for those who see us for the first time.
-     */
-    socket.emit('brush', dX, dY, this.pos.x, this.pos.y,
-        this.col.toString());
   }
 
   setDirection(x, y) {
@@ -202,19 +202,13 @@ class Brush {
     this.direction.limit(15);
   }
 
-  /**
-   * Calculates the new position.
-   */
-  move() {
-    // Stops if it the nose is too close.
-    if (this.direction.mag() < 4) return;
-
+  setPosition(pos, add) {
     // Save the new position.
     this.history.push(this.pos.copy());
 
     this.checkHistoryLenght();
 
-    this.pos.add(this.direction);
+    this.pos = add ? pos.add(add) : pos;
 
     if (this.pos.x > canvasWidth) {
       this.pos.x = canvasWidth;
@@ -229,6 +223,23 @@ class Brush {
   }
 
   /**
+   * Calculates the new position.
+   */
+  move() {
+    // Stops if it the nose is too close.
+    if (this.direction.mag() < 4) return;
+
+    this.setPosition(this.pos, this.direction);
+
+
+    /**
+     * We notice the server and other players about the position change.
+     */
+    socket.emit('brush',
+        this.pos.x, this.pos.y, this.direction.x, this.direction.y, this.col.toString());
+  }
+
+  /**
    * Trims the history if it's too long.
    */
   checkHistoryLenght() {
@@ -239,9 +250,9 @@ class Brush {
   }
 
   display() {
-    this.move();
-
     if (!this.remote) {
+      this.move();
+
       translate(-me.pos.x, -me.pos.y);
 
       push();
@@ -262,7 +273,7 @@ class Brush {
     }
     pop();
 
-    if (this.history.length > 1) {
+    if (this.history.length) {
       push();
 
       imageMode(CENTER);
@@ -286,4 +297,8 @@ function toggleCamera() {
 
 function doubleClicked() {
   toggleCamera();
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
 }
