@@ -49,7 +49,7 @@ socket.on('brush', (id, x, y, angle, col) => {
 /**
  * When a player leaves, let's set direction to 0 so it stops.
  */
-socket.on('brush.leave', (id) => {
+socket.on('brush.die', (id) => {
   brushes.get(id)?.die();
 });
 
@@ -88,6 +88,7 @@ function textInPos(t, pos) {
 
 // eslint-disable-next-line no-unused-vars
 function draw() {
+  textSize(20);
   push();
   background(3);
 
@@ -189,7 +190,7 @@ class StarShip {
    */
   move() {
     // Stops if it the nose is too close.
-    if (this.direction.mag() < 4) return;
+    if (this.direction.mag() < 2) return;
 
     this.setPosition(this.pos, this.direction);
 
@@ -217,6 +218,7 @@ class StarShip {
   die() {
     this.status = DEAD;
     this.setDirection(0, 0);
+    count--;
   }
 
   display() {
@@ -253,7 +255,6 @@ class StarShip {
       translate(this.pos);
       rotate(this.direction.heading() + HALF_PI);
       image(starshipIcon, 0, 0);
-
       pop();
     }
   }

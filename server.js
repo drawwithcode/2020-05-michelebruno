@@ -18,7 +18,7 @@ io.on('connect', /** @param {Socket} socket */ (socket) => {
   socket.emit('color', color);
 
   socket.on('disconnect', () => {
-    socket.broadcast.emit('brush.leave', socket.id);
+    socket.broadcast.emit('brush.die', socket.id);
   });
 
   // define what to do on different kind of messages
