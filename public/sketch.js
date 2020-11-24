@@ -12,19 +12,10 @@ const socket = io();
 // The width of the player canvas, not the p5 one.
 const canvasWidth = 8000;
 const canvasHeight = canvasWidth * 0.737;
-
-let nose;
-let faceapi;
-let video;
-let videoCanva;
-let detections;
-let noseIcon;
+let starshipIcon;
 let stars;
 let me;
-let timeout;
-/** @type {p5.Element} */
-let modeButton;
-let useFace = false;
+const useFace = false;
 
 /**
  * Changes the direction of the brush and creates one if it's not there.
@@ -49,98 +40,14 @@ socket.on('brush.leave', (id) => {
 });
 
 function preload() {
-  noseIcon = loadImage('assets/starship.png');
+  starshipIcon = loadImage('assets/starship.png');
   stars = loadImage('assets/stars.jpg');
-}
-
-/**
- * On this sketch will be shown the camera.
- */
-new p5((sketch) => {
-  sketch.setup = function() {
-    videoCanva = sketch.createCanvas(windowWidth, windowHeight).
-        position(0, 0).
-        style('opacity', '0.4').
-        style('transition', 'opacity 500ms');
-  };
-
-  sketch.drawPart = function(feature, closed) {
-    sketch.push();
-
-    const r = sketch.width / video.width;
-
-    sketch.scale(r);
-    sketch.noFill();
-
-    sketch.stroke(161, 95, 251);
-    sketch.strokeWeight(2);
-
-    sketch.beginShape();
-    for (let i = 0; i < feature.length; i += 1) {
-      const x = feature[i]._x;
-      const y = feature[i]._y;
-      sketch.vertex(x, y);
-      text(i, x, y);
-    }
-
-    if (closed === true) {
-      sketch.endShape(CLOSE);
-    } else {
-      sketch.endShape();
-    }
-
-    sketch.pop();
-  };
-
-  sketch.windowResized = function() {
-    sketch.resizeCanvas(sketch.windowWidth, sketch.windowHeight);
-  };
-
-  sketch.draw = () => {
-    if (!video) return;
-
-    const ratio = video.height / video.width;
-
-    sketch.push();
-
-    // Let's flip the sketch in order to see the image right.
-    sketch.translate(sketch.width, 0);
-    sketch.scale(-1, 1);
-
-    sketch.push();
-
-    sketch.translate(sketch.width / 2, sketch.height / 2);
-    sketch.imageMode(CENTER);
-    sketch.image(video, 0, 0, sketch.width,
-        sketch.width * ratio);
-
-    sketch.pop();
-
-    // if (nose) sketch.drawPart(nose, false);
-
-    sketch.pop();
-  };
-});
-
-function initVideo() {
-  if (video) return;
-
-  video = createCapture(VIDEO, () => {
-    faceapi = ml5.faceApi(video, {
-      withLandmarks: true,
-      withDescriptors: false,
-    }, () => faceapi.detect(gotResults));
-  });
-  video.hide(); // Hide the video element, and just show the canvas
 }
 
 // eslint-disable-next-line no-unused-vars
 function setup() {
   createCanvas(windowWidth, windowHeight);
 
-  modeButton = createButton('Drive with your face').
-      position(20, 20).
-      mouseClicked(toggleMode);
   /**
    * Creates a brush with a random position.
    * @type {StarShip}
@@ -175,28 +82,6 @@ function draw() {
   }
 }
 
-/**
- * This is function is called whenever a face is detected.
- */
-function gotResults(err, result) {
-  if (err) {
-    console.error(err);
-    return;
-  }
-
-  detections = result;
-
-  if (detections) {
-    if (detections.length > 0) {
-      nose = detections[0].parts.nose;
-      me.onNose(detections[0].parts.nose);
-    } else nose = false;
-  } else nose = false;
-
-  if (!useFace) return;
-
-  faceapi.detect(gotResults);
-}
 
 class StarShip {
   constructor({x = 0, y = 0, remote = true, col} = {}) {
@@ -209,16 +94,6 @@ class StarShip {
     this.col = col ? color(col) : color(random(255), random(255), random(255));
 
     console.log('new brush', this.col, x, y);
-  }
-
-  onNose(found) {
-    const {_x, _y} = found[3];
-
-    // This is like a translate. It also flips the image on the x axis.
-    const dX = map(_x, 0, video.width, width / 2, -width / 2);
-    const dY = map(_y, 0, video.height, -height / 2, height / 2);
-    nose = found;
-    this.setDirection(dX, dY);
   }
 
   setDirection(x, y) {
@@ -318,37 +193,11 @@ class StarShip {
       imageMode(CENTER);
       translate(this.pos);
       rotate(this.direction.heading() + HALF_PI);
-      image(noseIcon, 0, 0);
+      image(starshipIcon, 0, 0);
 
       pop();
     }
   }
-}
-
-// eslint-disable-next-line no-unused-vars
-function keyPressed() {
-  if (keyIsDown(67)) toggleCamera();
-}
-
-function toggleCamera() {
-  if (timeout) clearTimeout(timeout);
-  videoCanva?.toggleClass('hide');
-}
-
-function toggleMode() {
-  useFace = !useFace;
-
-  if (useFace) {
-    video ? faceapi.detect(gotResults): initVideo();
-    modeButton.html('Use mouse to navigate');
-  } else {
-    modeButton.html('Use your face');
-    videoCanva.addClass('hide');
-  }
-}
-
-function doubleClicked() {
-  toggleCamera();
 }
 
 function windowResized() {
