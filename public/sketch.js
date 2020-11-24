@@ -11,7 +11,7 @@ const socket = io();
 
 // The width of the player canvas, not the p5 one.
 const canvasWidth = 8000;
-const canvasHeight = 7000;
+const canvasHeight = canvasWidth * 0.737;
 
 let nose;
 let faceapi;
@@ -19,6 +19,7 @@ let video;
 let videoCanva;
 let detections;
 let noseIcon;
+let stars;
 let me;
 
 /**
@@ -44,7 +45,8 @@ socket.on('brush.leave', (id) => {
 });
 
 function preload() {
-  noseIcon = loadImage('assets/nose.png');
+  noseIcon = loadImage('assets/starship.png');
+  stars = loadImage('assets/stars.jpg');
 }
 
 /**
@@ -135,7 +137,7 @@ function setup() {
 
 // eslint-disable-next-line no-unused-vars
 function draw() {
-  background(220);
+  background(3);
 
   translate(width / 2, height / 2);
 
@@ -235,8 +237,14 @@ class Brush {
     /**
      * We notice the server and other players about the position change.
      */
-    socket.emit('brush',
-        this.pos.x, this.pos.y, this.direction.x, this.direction.y, this.col.toString());
+    socket.emit(
+        'brush',
+        this.pos.x,
+        this.pos.y,
+        this.direction.x,
+        this.direction.y,
+        this.col.toString(),
+    );
   }
 
   /**
@@ -259,6 +267,8 @@ class Brush {
       noStroke();
       fill(255);
       rect(0, 0, canvasWidth, canvasHeight);
+
+      image(stars, 0, 0, canvasWidth, canvasHeight);
       pop();
     }
 
@@ -276,6 +286,7 @@ class Brush {
     if (this.history.length) {
       push();
 
+      noStroke();
       imageMode(CENTER);
       translate(this.pos);
       rotate(this.direction.heading() + HALF_PI);
