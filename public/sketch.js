@@ -93,11 +93,12 @@ function draw() {
 
   translate(width / 2, height / 2);
 
-  if (!useFace) {
-    const dX = map(mouseX, 0, width, -width, width) / 15;
-    const dY = map(mouseY, 0, height, -height, height) / 15;
-    me.setDirection(dX, dY);
-  }
+
+  const dX = map(mouseX, 0, width, -30, 30);
+  const dY = map(mouseY, 0, height, -30 * height/width, 30*height/width);
+
+  me.setDirection(dX, dY);
+
 
   /**
    * In order to have better speed control.
@@ -119,7 +120,6 @@ function draw() {
 
   fill('white');
   textInPos('There are ' + (count -1 ) + ' spaceships around', positions.topLeft);
-
   pop();
 
   /**
