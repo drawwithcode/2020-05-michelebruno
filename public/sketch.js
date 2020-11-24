@@ -21,6 +21,10 @@ let detections;
 let noseIcon;
 let stars;
 let me;
+let timeout;
+/** @type {p5.Element} */
+let modeButton;
+let useFace = true;
 
 /**
  * Changes the direction of the brush and creates one if it's not there.
@@ -122,6 +126,13 @@ new p5((sketch) => {
 function setup() {
   createCanvas(windowWidth, windowHeight);
 
+  modeButton =createButton('Drive with your face')
+      .position(20, 20)
+      .mouseClicked(toggleMode);
+  /**
+   * Creates a brush with a random position.
+   * @type {Brush}
+   */
   me = new Brush({x: random(canvasWidth), y: random(canvasHeight), remote: 0});
 
   video = createCapture(VIDEO); // load up your video
@@ -303,7 +314,18 @@ function keyPressed() {
 }
 
 function toggleCamera() {
+  if (timeout) clearTimeout(timeout);
   videoCanva?.toggleClass('hide');
+}
+
+function toggleMode() {
+  useFace = !useFace;
+
+  if (useFace) {
+    modeButton.html('Use your face');
+  } else {
+    modeButton.html( 'Use mouse to navigate' );
+  }
 }
 
 function doubleClicked() {
